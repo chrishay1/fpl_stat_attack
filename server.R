@@ -1,10 +1,10 @@
 #
-# This is the server logic of a Shiny web application. You can run the 
-# application by clicking 'Run App' above.
+# This is the server logic for the FPl stat attack Shiny application. 
+# Written by; Christopher Hay
 #
-# Find out more about building applications with Shiny here:
 # 
-#    http://shiny.rstudio.com/
+# 
+#    
 #
 #json_player_list <- list(0)
 library(shiny)
@@ -87,14 +87,18 @@ shinyServer(function(input, output) {
         json_teams<- json_teams[json_teams$gw>=input$team_gw[1]&json_teams$gw<=input$team_gw[2],]
         home_diff <- json_teams %>% group_by(home_team) %>% summarise(home_diff_sum=sum(home_diff),home_count=n())
         away_diff <- json_teams %>% group_by(away_team) %>% summarise(away_diff_sum=sum(away_diff),away_count=n())
-        total_diff <- inner_join(home_diff,away_diff,by=c("home_team"="away_team")) %>% 
+        total_diff <- full_join(home_diff,away_diff,by=c("home_team"="away_team")) 
+        total_diff[is.na(total_diff)] <-0
+        total_diff <- total_diff %>% 
             mutate(total_diff_sum=home_diff_sum+away_diff_sum,total_count=home_count+away_count)%>%
             mutate(diff_rank = total_diff_sum / total_count)
         colnames(total_diff)[1] <- c("team")
-        total_diff <- inner_join(total_diff,fpl_team_list) %>% arrange(diff_rank)
+        total_diff <- full_join(total_diff,fpl_team_list) %>% arrange(diff_rank)
         total_diff_x <- total_diff[,c("team_name","diff_rank","total_count","home_count","away_count")]
         colnames(total_diff_x) <- c("Team name","Average difficulty ranking","Total count","Home game count","Away games count")
-        total_diff_x
+        total_diff_x[is.na(total_diff_x)] <- 0
+        return(total_diff_x)
+        
     })
     output$team_table <- renderTable(team_table())
 })
